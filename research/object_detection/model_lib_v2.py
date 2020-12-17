@@ -950,6 +950,10 @@ def eager_eval_loop(
   for loss_key in loss_metrics:
     eval_metrics[loss_key] = tf.reduce_mean(loss_metrics[loss_key])
 
+  for evaluator in evaluators:
+      evaluator.dump_detections_to_json_file(
+          json_output_path='evaluator_dump.json')
+
   eval_metrics = {str(k): v for k, v in eval_metrics.items()}
   tf.logging.info('Eval metrics at step %d', global_step)
   for k in eval_metrics:

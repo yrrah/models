@@ -19,7 +19,15 @@ control the precision of floats when writing to json strings or files.
 """
 import json
 import re
+import numpy as np
 
+class npEncoder(json.JSONEncoder):
+  def default(self, obj):
+    if isinstance(obj, np.int32):
+      return int(obj)
+    if isinstance(obj, np.int64):
+      return int(obj)
+    return json.JSONEncoder.default(self, obj)
 
 def FormatFloat(json_str, float_digits):
   pattern = re.compile(r'\d+\.\d+')
@@ -38,7 +46,7 @@ def Dump(obj, fid, float_digits=-1, **params):
     float_digits: The number of digits of precision when writing floats out.
     **params: Additional parameters to pass to json.dumps.
   """
-  json_str = Dumps(obj, float_digits, **params)
+  json_str = Dumps(obj, float_digits, cls=npEncoder, **params)
   fid.write(json_str)
 
 
@@ -53,7 +61,7 @@ def Dumps(obj, float_digits=-1, **params):
   Returns:
     output: JSON string representation of obj.
   """
-  json_str = json.dumps(obj, **params)
+  json_str = json.dumps(obj, cls=npEncoder, **params)
   if float_digits > -1:
     json_str = FormatFloat(json_str, float_digits)
   return json_str

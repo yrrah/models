@@ -681,40 +681,52 @@ def _replace_empty_string_with_random_number(string_tensor):
   return out_string
 
 
+@tf.function
+def _get_filename_key(source_id):
+    # filename_key = tf.strings.join([tf.strings.substr(source_id, 6, 4), tf.strings.substr(source_id, 15, 8)])#ILSVRC
+    # filename_key = tf.strings.substr(source_id, 0, 6)#pascal
+    # filename_key = tf.strings.substr(source_id, 13, 12)  # coco2014
+    filename_key = tf.strings.substr(source_id, 0, 12)  # coco2017
+    # filename_key = tf.strings.substr(source_id, 0, 4)  # caltech
+    # tf.print(filename_key)
+    return filename_key
+
 def _get_features_dict(input_dict, include_source_id=False):
-  """Extracts features dict from input dict."""
+    """Extracts features dict from input dict."""
 
-  source_id = _replace_empty_string_with_random_number(
-      input_dict[fields.InputDataFields.source_id])
+    source_id = _replace_empty_string_with_random_number(
+        input_dict[fields.InputDataFields.source_id])
 
-  hash_from_source_id = tf.string_to_hash_bucket_fast(source_id, HASH_BINS)
-  features = {
-      fields.InputDataFields.image:
-          input_dict[fields.InputDataFields.image],
-      HASH_KEY: tf.cast(hash_from_source_id, tf.int32),
-      fields.InputDataFields.true_image_shape:
-          input_dict[fields.InputDataFields.true_image_shape],
-      fields.InputDataFields.original_image_spatial_shape:
-          input_dict[fields.InputDataFields.original_image_spatial_shape]
-  }
-  if include_source_id:
-    features[fields.InputDataFields.source_id] = source_id
-  if fields.InputDataFields.original_image in input_dict:
-    features[fields.InputDataFields.original_image] = input_dict[
-        fields.InputDataFields.original_image]
-  if fields.InputDataFields.image_additional_channels in input_dict:
-    features[fields.InputDataFields.image_additional_channels] = input_dict[
-        fields.InputDataFields.image_additional_channels]
-  if fields.InputDataFields.context_features in input_dict:
-    features[fields.InputDataFields.context_features] = input_dict[
-        fields.InputDataFields.context_features]
-  if fields.InputDataFields.valid_context_size in input_dict:
-    features[fields.InputDataFields.valid_context_size] = input_dict[
-        fields.InputDataFields.valid_context_size]
-  if fields.InputDataFields.context_features_image_id_list in input_dict:
-    features[fields.InputDataFields.context_features_image_id_list] = (
-        input_dict[fields.InputDataFields.context_features_image_id_list])
-  return features
+    hash_from_source_id = tf.string_to_hash_bucket_fast(source_id, HASH_BINS)
+    filename_key = _get_filename_key(source_id)
+    features = {
+        fields.InputDataFields.image:
+            input_dict[fields.InputDataFields.image],
+        HASH_KEY: tf.strings.to_number(filename_key, tf.int64),
+        # HASH_KEY: tf.cast(hash_from_source_id, tf.int32),
+        fields.InputDataFields.true_image_shape:
+            input_dict[fields.InputDataFields.true_image_shape],
+        fields.InputDataFields.original_image_spatial_shape:
+            input_dict[fields.InputDataFields.original_image_spatial_shape]
+    }
+    if include_source_id:
+        features[fields.InputDataFields.source_id] = filename_key
+    if fields.InputDataFields.original_image in input_dict:
+        features[fields.InputDataFields.original_image] = input_dict[
+            fields.InputDataFields.original_image]
+    if fields.InputDataFields.image_additional_channels in input_dict:
+        features[fields.InputDataFields.image_additional_channels] = input_dict[
+            fields.InputDataFields.image_additional_channels]
+    if fields.InputDataFields.context_features in input_dict:
+        features[fields.InputDataFields.context_features] = input_dict[
+            fields.InputDataFields.context_features]
+    if fields.InputDataFields.valid_context_size in input_dict:
+        features[fields.InputDataFields.valid_context_size] = input_dict[
+            fields.InputDataFields.valid_context_size]
+    if fields.InputDataFields.context_features_image_id_list in input_dict:
+        features[fields.InputDataFields.context_features_image_id_list] = (
+            input_dict[fields.InputDataFields.context_features_image_id_list])
+    return features
 
 
 def create_train_input_fn(train_config, train_input_config,
